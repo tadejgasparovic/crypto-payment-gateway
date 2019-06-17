@@ -1,0 +1,104 @@
+version: '3'
+
+services:
+
+  client-portal:
+    restart: always
+    build:
+      context: ./client-portal
+      dockerfile: Dockerfile
+      args:
+        - BUILD_ENV
+    container_name: crypto-payment-gateway_client-portal_${BUILD_ENV}
+    volumes:
+      - "${CONFIG_DIR}/portal.config.js:/client-portal/config/config.js:ro"
+      - "${SSL_CERT}:/client-portal/ssl/default.cert:ro"
+      - "${SSL_KEY}:/client-portal/ssl/default.key:ro"
+    ports:
+      - "${PORTAL_PORT_PLAIN}:3000/tcp"
+      - "${PORTAL_PORT_SECURE}:3443/tcp"
+    networks:
+      - database
+    depends_on:
+      - database
+      - payment-gateway
+
+  admin-panel:
+    restart: always
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+      args:
+        - BUILD_ENV
+    container_name: crypto-payment-gateway_admin-panel_${BUILD_ENV}
+    volumes:
+      - "${CONFIG_DIR}/admin.config.js:/admin-panel/config/config.js:ro"
+      - "${SSL_CERT}:/client-portal/ssl/default.cert:ro"
+      - "${SSL_KEY}:/client-portal/ssl/default.key:ro"
+    ports:
+      - "${ADMIN_PORT_PLAIN}:3000/tcp"
+      - "${ADMIN_PORT_SECURE}:3443/tcp"
+    networks:
+      - database
+      - gateway
+    depends_on:
+      - payment-gateway
+      - database
+
+  checkout-frontend:
+    restart: always
+    build:
+      context: ./checkout-frontend
+      dockerfile: Dockerfile
+      args:
+        - BUILD_ENV
+    container_name: crypto-payment-gateway_checkout-frontend_${BUILD_ENV}
+    volumes:
+      - "${CONFIG_DIR}/checkout.config.js:/checkout-frontend/config/config.js:ro"
+    ports:
+      - "${FRONTEND_PORT_PLAIN}:3000/tcp"
+      - "${FRONTEND_PORT_SECURE}:3443/tcp"
+    networks:
+      - gateway
+    depends_on:
+      - payment-gateway
+      - database
+
+  payment-gateway:
+    restart: always
+    build:
+      context: ./payment-gateway
+      dockerfile: Dockerfile
+      args:
+        - BUILD_ENV
+    container_name: crypto-payment-gateway_payment-gateway_${BUILD_ENV}
+    volumes:
+      - "${CONFIG_DIR}/gateway.config.js:/payment-gateway/config/config.js:ro"
+      - "${SSL_CERT}:/payment-gateway/ssl/default.cert:ro"
+      - "${SSL_KEY}:/payment-gateway/ssl/default.key:ro"
+    ports:
+      - "${GATEWAY_PORT_PLAIN}:3000/tcp"
+      - "${GATEWAY_PORT_SECURE}:3443/tcp"
+    networks:
+      - database
+      - gateway
+    depends_on:
+      - database
+
+  database:
+    restart: always
+    image: "mongo:3.6"
+    container_name: crypto-payment-gateway_mongo_${BUILD_ENV}
+    networks:
+      - database
+    volumes:
+      - "${MONGO_DATA}:/data/db"
+
+
+networks:
+
+  gateway:
+    driver: bridge
+
+  database:
+    driver: bridge

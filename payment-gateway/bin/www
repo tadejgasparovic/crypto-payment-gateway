@@ -1,0 +1,159 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('payment-gateway:server');
+var http = require('http');
+var https = require('spdy');
+var fs = require('fs');
+var _ = require('lodash');
+var path = require('path');
+
+var config = require('../src/config');
+
+var Admin = require('../models/admin.model');
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = 3443;
+var insecurePort = 3000;
+
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = https.createServer(httpsOptions(), app);
+
+var insecureServer = http.createServer((req, res) => {
+
+  res.writeHead(308, { location: `https://${config.host}${req.url}` });
+  res.end();
+
+});
+
+
+// Open a connection to the DB
+require('../src/database')()(db => {
+
+  // Check for the default admin account
+  Admin.model.countDocuments({ username: "admin" }, (err, count) => {
+    if(err) return debug(err);
+
+    if(count >= 1) return startMailer();
+
+    // Create the default admin account
+    const defaultAccount = new Admin.model({
+      username: "admin",
+      password: "admin123"
+    });
+
+    defaultAccount.save()
+                  .then(() => {
+                    debug("Default admin account created!");
+                    startMailer();
+                  })
+                  .catch(e => {
+                    debug("Failed to create the default admin account!");
+                    debug(e);
+                    process.exit(3);
+                  });
+  });
+
+  function startMailer()
+  {
+    require('../src/email').verify()
+                            .catch(() => process.exit(25))
+                            .then(() => startServer());
+  }
+
+  function startServer()
+  {
+    const unhookNotifications = require('../src/notifications'); // Register payment event hooks for notifications
+
+    server.listen(port);
+    server.on('error', _.curry(onError)(port));
+    server.on('listening', () => onListening(server, "HTTPS"));
+
+    insecureServer.listen(insecurePort);
+    insecureServer.on('error', _.curry(onError)(insecurePort));
+    insecureServer.on('listening', () => onListening(insecureServer, "HTTP"));
+
+    // Gracefully shutdown on SIGTERM & SIGINT
+    const gracefulShutdown = event => () => {
+      debug(event);
+      debug("Shutting down...");
+      
+      server.close(() => {
+
+        debug("Http server closed..");
+        unhookNotifications();
+
+        db.close(() => process.exit(0));
+      });
+
+    };
+
+    process.on('SIGTERM', gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', gracefulShutdown('SIGINT'));
+  }
+});
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(port, error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening(server, protocol) {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug(`Listening on ${bind} [${protocol}]`);
+}
+
+function httpsOptions()
+{
+  const spdy = {
+    protocols: [ 'h2', 'http/1.1' ]
+  };
+
+  return {
+    key: fs.readFileSync(path.resolve(process.env.IS_DOCKER ? '/payment-gateway/ssl/default.key' : '../ssl/default.key')),
+    cert: fs.readFileSync(path.resolve(process.env.IS_DOCKER ? '/payment-gateway/ssl/default.cert' : '../ssl/default.cert')),
+    spdy
+  };
+}
