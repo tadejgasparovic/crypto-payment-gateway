@@ -1,2 +1,2 @@
-ssl/
-db/
+ssl/*
+db/*
