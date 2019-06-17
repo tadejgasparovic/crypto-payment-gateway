@@ -1,1 +1,2 @@
-oculor_data/
+oculor_data/*
+!oculor_data/oculor.conf
