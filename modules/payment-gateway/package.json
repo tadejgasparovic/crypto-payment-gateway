@@ -1,0 +1,33 @@
+{
+  "name": "payment-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www",
+    "test": "jest --env=node --testPathPattern='.*__tests__/.+\\.test\\.js' --verbose"
+  },
+  "dependencies": {
+    "@hapi/joi": "^15.0.3",
+    "bcrypt": "^3.0.6",
+    "cors": "^2.8.5",
+    "date-format": "^2.0.0",
+    "debug": "~2.6.9",
+    "express": "~4.16.0",
+    "helmet": "^3.18.0",
+    "ip": "^1.1.5",
+    "json-rpc2": "^1.0.2",
+    "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.11",
+    "mongoose": "^5.5.12",
+    "mongoose-hidden": "^1.6.1",
+    "mongoose-paginate": "^5.0.3",
+    "morgan": "~1.9.0",
+    "nodemailer": "^6.2.1",
+    "request": "^2.88.0",
+    "spdy": "^4.0.0"
+  },
+  "devDependencies": {
+    "jest": "^24.8.0",
+    "supertest": "^4.0.2"
+  }
+}

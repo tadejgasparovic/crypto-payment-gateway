@@ -5,8 +5,8 @@ services:
   client-portal:
     restart: always
     build:
-      context: ./client-portal
-      dockerfile: Dockerfile
+      context: ./modules/client-portal
+      dockerfile: ../../docker/client-portal/Dockerfile
       args:
         - BUILD_ENV
     container_name: crypto-payment-gateway_client-portal_${BUILD_ENV}
@@ -26,13 +26,12 @@ services:
   admin-panel:
     restart: always
     build:
-      context: ./admin-panel
-      dockerfile: Dockerfile
+      context: ./modules
+      dockerfile: ../docker/admin-panel/Dockerfile
       args:
         - BUILD_ENV
     container_name: crypto-payment-gateway_admin-panel_${BUILD_ENV}
     volumes:
-      - "${CONFIG_DIR}/admin.config.js:/admin-panel/config/config.js:ro"
       - "${SSL_CERT}:/client-portal/ssl/default.cert:ro"
       - "${SSL_KEY}:/client-portal/ssl/default.key:ro"
     ports:
@@ -48,8 +47,8 @@ services:
   checkout-frontend:
     restart: always
     build:
-      context: ./checkout-frontend
-      dockerfile: Dockerfile
+      context: ./modules/checkout-frontend
+      dockerfile: ../../docker/checkout-frontend/Dockerfile
       args:
         - BUILD_ENV
     container_name: crypto-payment-gateway_checkout-frontend_${BUILD_ENV}
@@ -67,8 +66,8 @@ services:
   payment-gateway:
     restart: always
     build:
-      context: ./payment-gateway
-      dockerfile: Dockerfile
+      context: ./modules/payment-gateway
+      dockerfile: ../../docker/payment-gateway/Dockerfile
       args:
         - BUILD_ENV
     container_name: crypto-payment-gateway_payment-gateway_${BUILD_ENV}
