@@ -11,7 +11,7 @@ const paymentSchema = new Schema({
 		type: ObjectId,
 		ref: "merchants",
 		required: true,
-		hide: true
+		hideJSON: true
 	},
 	customerEmail: {
 		type: String,

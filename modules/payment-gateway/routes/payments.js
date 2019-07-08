@@ -91,7 +91,13 @@ router.get('/:id', (req, res, next) => {
 // Get all payments
 router.get('/', auth('admin'), (req, res, next) => {
 	Payment.model.find({})
-					.then(payments => payments ? res.send(payments) : res.status(404).send("Not Found"))
+					.then(payments => {
+						if(payments)
+						{
+							res.send(payments.map(payment => payment.toObject()));
+						}
+						else res.status(404).send("Not Found");
+					})
 					.catch(e => {
 						debug("Cannot return a list of payments");
 						debug(e);

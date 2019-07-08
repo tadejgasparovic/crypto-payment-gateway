@@ -67,6 +67,11 @@ export async function isValid()
 	return await backend.get('/auth/check');
 }
 
+export async function userInfo(type, identifier)
+{
+	return backend.get(`/auth/${type}/${identifier}`);
+}
+
 export async function logout()
 {
 	localStorage.removeItem('access_token');

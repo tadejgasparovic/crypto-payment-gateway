@@ -48,7 +48,13 @@ module.exports = makeCrudEndpoint({
 				createdBy: req.token.type === 'admin' ? data.createdBy : req.token.id
 			};
 		},
-		read: (req, data) => data.map(model => ({ ...model, createdBy: (model.createdBy || { username: "N/A" }).username })),
+		read: (req, data) => data.map(model => {
+			const createdBy = req.query.raw ?
+								model.createdBy :
+								(model.createdBy || { username: "N/A" }).username;
+
+			return { ...model, createdBy };
+		}),
 		before: action => (req, res, next) => {
 			const { name = null, symbol = null, adapter = 'rpc', createdBy, adapterProps } = req.body;
 

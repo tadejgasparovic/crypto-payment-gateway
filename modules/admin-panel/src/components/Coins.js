@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import CrudPage from './CrudPage';
 
 import UserSelect from './partial/UserSelect';
+import UsernameProvider from './partial/UsernameProvider';
 
 import withAuth from './partial/withAuth';
 
@@ -13,6 +14,9 @@ function Coins({ user })
 
 		<CrudPage
 			endpoint="/coins"
+			endpointQuery={{
+				raw: 1
+			}}
 			title="Coins"
 			uidField="symbol"
 			columns={[
@@ -55,7 +59,8 @@ function Coins({ user })
 				{
 					title: "Created By",
 					field: "createdBy",
-					editComponent: ({ value = "", onChange }) => <UserSelect type="client" label="Provider" value={ value } onChange={ ({ value }) => onChange(value) } />
+					editComponent: ({ value = "", onChange }) => <UserSelect type="client" label="Provider" value={ value } onChange={ ({ value }) => onChange(value) } />,
+					render: row => <UsernameProvider type="client" value={ row.createdBy } />
 				},
 				{
 					title: "Created At",

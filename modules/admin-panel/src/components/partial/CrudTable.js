@@ -29,8 +29,19 @@ import withAuth from './withAuth';
 
 import config from '../../config';
 
-function CrudTable({ title, columns, isEditable, isDeletable, endpoint, uidField = 'username', isAuth })
+function CrudTable({ title, columns, isEditable, isDeletable, endpoint, endpointQuery, uidField = 'username', isAuth, operations = [ 'create', 'update', 'delete' ] })
 {
+	const makeTargetEndpoint = modifier => {
+		modifier = modifier || "";
+		const separator = endpoint.endsWith('/') ? "" : "/";
+		const mod = modifier.startsWith('/') ? modifier.slice(1) : modifier;
+		const query = _.toPairs(endpointQuery || {})
+						.map(([ key, value ]) => [ key, encodeURIComponent(value) ].join('='))
+						.join('&');
+
+		return `${endpoint}${separator}${mod}?${query}`;
+	}
+
 	const [ data, setData ] = useState([]);
 	const [ loading, setLoading ] = useState(true);
 	const [ nonce, setNonce ] = useState(0);
@@ -40,7 +51,7 @@ function CrudTable({ title, columns, isEditable, isDeletable, endpoint, uidField
 
 		if(!isAuth) return;
 
-		backend.get(endpoint)
+		backend.get(makeTargetEndpoint())
 				.then(({ data }) => setData(data))
 				.catch(({ request, response }) => {
 
@@ -58,25 +69,26 @@ function CrudTable({ title, columns, isEditable, isDeletable, endpoint, uidField
 		{
 			return {
 				...col,
-				render: row => formatDate(config.dateFormat, new Date((row && row[col.field]) || new Date().toISOString()))
+				render: row => row && row[col.field] ? formatDate(config.dateFormat, new Date(row[col.field])) : "N/A"
 			};
 		}
 		else if(((!col.type && !col.lookup) || col.type === 'numeric') && !col.editComponent)
 		{
 			const { password, title } = col;
 
-			const editComponent = ({ onChange, value = "", columnDef }) => <TextField
-																	placeholder={ title }
-																	value={ value }
-																	onChange={ ({ target }) => onChange(target.value) }
-																	InputProps={{
-																		style: {
-																			fontSize: 13
-																		},
-																		type: password ? "password" : (columnDef.type === 'numeric' ? "number" : "text")
-																	}}
-																	autoFocus={ i === 0 }
-																	/>
+			const editComponent = ({ onChange, value = "", columnDef }) =>
+									<TextField
+										placeholder={ title }
+										value={ value }
+										onChange={ ({ target }) => onChange(target.value) }
+										InputProps={{
+											style: {
+												fontSize: 13
+											},
+											type: password ? "password" : (columnDef.type === 'numeric' ? "number" : "text")
+										}}
+										autoFocus={ i === 0 }
+										/>
 
 			return {
 				...col,
@@ -117,6 +129,89 @@ function CrudTable({ title, columns, isEditable, isDeletable, endpoint, uidField
 		NotificationManager.error("Something went wrong!", "Error");
 	}
 
+	const can = (op, cb) => operations && operations.includes(op) ? cb : undefined;
+
+	const canEdit = () => isEditable &&
+							operations.includes('update') ?
+							isEditable :
+							(
+								!operations.includes('update') ?
+								() => false :
+								isEditable
+							);
+	const canDelete = () => isDeletable &&
+							operations.includes('delete') ?
+							isDeletable :
+							(
+								!operations.includes('delete') ?
+								() => false :
+								isDeletable
+							);
+
+	const editable = {
+		isEditable: canEdit(),
+		isDeletable: canDelete(),
+		onRowAdd: can('create', async newData => {
+			setLoading(true);
+
+			try
+			{
+				const postData = makePostData(newData, 'onAdd', 'always');
+				await backend.post(makeTargetEndpoint(), postData);
+			}
+			catch(e)
+			{
+				errorMessage(e);
+
+				throw e;
+			}
+			finally
+			{
+				setLoading(false);
+				setNonce(nonce + 1);
+			}
+		}),
+		onRowUpdate: can('update', async (newData, oldData) => {
+			setLoading(true);
+
+			try
+			{
+				const postData = makePostData(newData, 'onUpdate', 'always');
+				await backend.post(makeTargetEndpoint(oldData[uidField]), postData);
+			}
+			catch(e)
+			{
+				errorMessage(e);
+				
+				throw e;
+			}
+			finally
+			{
+				setLoading(false);
+				setNonce(nonce + 1);
+			}
+		}),
+		onRowDelete: can('delete', async oldData => {
+			setLoading(true);
+
+			try
+			{
+				await backend.delete(makeTargetEndpoint(oldData[uidField]));
+			}
+			catch(e)
+			{
+				errorMessage(e);
+
+				throw e;
+			}
+			finally
+			{
+				setLoading(false);
+				setNonce(nonce + 1);
+			}
+		})
+	};
+
 	return (
 
 		<MaterialTable
@@ -124,69 +219,7 @@ function CrudTable({ title, columns, isEditable, isDeletable, endpoint, uidField
 			columns={ mappedColumns }
 			data={ data }
 			isLoading={ loading }
-			editable={{
-				isEditable,
-				isDeletable,
-				onRowAdd: async newData => {
-					setLoading(true);
-
-					try
-					{
-						const postData = makePostData(newData, 'onAdd', 'always');
-						await backend.post(endpoint, postData);
-					}
-					catch(e)
-					{
-						errorMessage(e);
-
-						throw e;
-					}
-					finally
-					{
-						setLoading(false);
-						setNonce(nonce + 1);
-					}
-				},
-				onRowUpdate: async (newData, oldData) => {
-					setLoading(true);
-
-					try
-					{
-						const postData = makePostData(newData, 'onUpdate', 'always');
-						await backend.post(`${endpoint}${endpoint.endsWith('/') ? "" : "/"}${oldData[uidField]}`, postData);
-					}
-					catch(e)
-					{
-						errorMessage(e);
-						
-						throw e;
-					}
-					finally
-					{
-						setLoading(false);
-						setNonce(nonce + 1);
-					}
-				},
-				onRowDelete: async oldData => {
-					setLoading(true);
-
-					try
-					{
-						await backend.delete(`${endpoint}${endpoint.endsWith('/') ? "" : "/"}${oldData[uidField]}`);
-					}
-					catch(e)
-					{
-						errorMessage(e);
-
-						throw e;
-					}
-					finally
-					{
-						setLoading(false);
-						setNonce(nonce + 1);
-					}
-				}
-			}}
+			editable={ _.pickBy(editable) }
 			icons={{
 				Add: AddIcon,
 				Check: CheckIcon,
@@ -221,7 +254,10 @@ CrudTable.propTypes = {
 	columns: PropTypes.array.isRequired,
 	endpoint: PropTypes.string.isRequired,
 	isAuth: PropTypes.bool.isRequired,
-	uidField: PropTypes.string
+	operations: PropTypes.arrayOf(PropTypes.string),
+	uidField: PropTypes.string,
+	endpointQuery: PropTypes.object,
+	readOnly: PropTypes.bool
 };
 
 export default withAuth(CrudTable);

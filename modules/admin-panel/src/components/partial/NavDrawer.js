@@ -22,6 +22,7 @@ import MenuIcon from '@material-ui/icons/Menu';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import DashboardIcon from '@material-ui/icons/Dashboard';
 import PermIdentityIcon from '@material-ui/icons/PermIdentity';
+import LocalAtmIcon from '@material-ui/icons/LocalAtm';
 
 import { makeStyles } from '@material-ui/core/styles';
 
@@ -34,6 +35,11 @@ const drawerLinks = [
 		title: "Dashboard",
 		icon: DashboardIcon,
 		path: "/dashboard"
+	},
+	{
+		title: "Payments",
+		icon: LocalAtmIcon,
+		path: "/payments"
 	},
 	{
 		title: "Merchants",

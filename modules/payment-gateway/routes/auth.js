@@ -64,4 +64,63 @@ router.get('/check', auth(...(_.keys(accountTypes))), (req, res) => {
 			});
 });
 
+router.get('/:type/:uid', auth('admin'), (req, res) => {
+
+	const { type, uid } = req.params;
+
+	if(!_.keys(accountTypes).includes(type))
+	{
+		res.status(404).send("Not Found");
+		return;
+	}
+
+	const Account = accountTypes[type];
+
+	const handleError = e => {
+		debug(`Couldn't get user info for type "${type}" and uid "${uid}"`);
+		debug(e);
+		res.status(500).send("Internal Error");
+	}
+
+	if(/[a-fA-F0-9]{24}/.test(uid)) // It's probably an ID
+	{
+		Account.findById(uid)
+				.then(account => {
+					if(account)
+					{
+						res.status(200).send(account);
+						return;
+					}
+
+					return Account.findOne({ username: uid });
+				})
+				.then(account => {
+					if(res.finished) return;
+					if(!account)
+					{
+						res.status(404).send("Not Found");
+						return;
+					}
+
+					res.status(200).send(account);
+				})
+				.catch(handleError);
+	}
+	else // No way it's an ID. It must be a username!
+	{
+		Account.findOne({ username: uid })
+				.then(account => {
+					if(!account)
+					{
+						res.status(404).send("Not Found");
+					}
+					else
+					{
+						res.status(200).send(account);
+					}
+				})
+				.catch(handleError);
+	}
+});
+
 module.exports = router;

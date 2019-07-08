@@ -98,7 +98,8 @@ module.exports = options => {
 	router.get('/', readAuth, beforeRead, (req, res) => {
 		const query = Model.model.find({});
 
-		if(populateRefs &&
+		if(!req.query.raw &&
+			populateRefs &&
 			typeof populateRefs === 'object' &&
 			populateRefs.constructor === Array) populateRefs.forEach(ref => query.populate(ref));
 
