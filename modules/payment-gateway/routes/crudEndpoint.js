@@ -14,12 +14,14 @@ module.exports = options => {
 			permissions = { // Endpoint auth permissions (empty array === no auth / public)
 							create: [],
 							read: [],
+							readSingle: [],
 							update: [],
 							delete: []
 						},
 			middleware = {}, /* {
 								create: (req, data, Model) => updatedData, // Called before a new model is created with validated fields in `data`
 								read: (req, data, Model) => updatedData, // Called after the model `data` is read from the DB, right before it's sent off to the client
+								readSingle: (req, data, Model) => updatedData, // Called after the model `data` is read from the DB, right before it's sent off to the client
 								before: action => (req, res, next) => next(), // Function which returns an express middleware for the specific route; middleware is run before the route
 							} */
 			validationSchemas = { // Custom Joi validation schemas; if falsy it defaults to the model schema
@@ -36,6 +38,7 @@ module.exports = options => {
 	const permissionSchema = Joi.object().keys({
 		create: Joi.array().items(Joi.string()).required(),
 		read: Joi.array().items(Joi.string()).required(),
+		readSingle: Joi.array().items(Joi.string()).required(),
 		update: Joi.array().items(Joi.string()).required(),
 		delete: Joi.array().items(Joi.string()).required()
 	});
@@ -123,6 +126,50 @@ module.exports = options => {
 		});
 	});
 
+	// Read single
+	let beforeReadSingle = middleware.before && middleware.before('readSingle');
+	if(!beforeReadSingle) beforeReadSingle = (req, res, next) => next();
+
+	let readSingleAuth = permissions.readSingle.length < 1 ? ((req, res, next) => next()) : auth(...permissions.readSingle);
+
+	router.get('/:uid', readSingleAuth, beforeReadSingle, (req, res) => {
+		const { uid } = req.params;
+
+		const field = /^[a-fA-F0-9]{24}$/.test(uid) ? "_id" : uidField;
+
+		const query = Model.model.findOne({ [field]: uid });
+
+		if(!req.query.raw &&
+			populateRefs &&
+			typeof populateRefs === 'object' &&
+			populateRefs.constructor === Array) populateRefs.forEach(ref => query.populate(ref));
+
+		query.then(model => {
+			if(!model)
+			{
+				res.status(404).send("Not Found");
+				return;
+			}
+
+			const modelObject = model.toObject();
+			const mutatedModel = typeof middleware.readSingle === 'function' ? middleware.readSingle(req, modelObject, Model) : modelObject;
+
+			if(!mutatedModel)
+			{
+				debug(`ERROR: Endpoint ${name} readMiddleware failed to return a truthy value!`);
+				res.status(500).send("Internal Error");
+				return;
+			}
+
+			res.status(200).send(mutatedModel);
+		})
+		.catch(e => {
+			debug(`ERROR: Couldn't load ${Model.model.collection.collectionName}`);
+			debug(e);
+			res.status(500).send("Internal Error");
+		});
+	});
+
 	// Update
 	let beforeUpdate = middleware.before && middleware.before('update');
 	if(!beforeUpdate) beforeUpdate = (req, res, next) => next();
@@ -134,7 +181,9 @@ module.exports = options => {
 	router.post('/:uid', updateAuth, beforeUpdate, updateValidator, (req, res) => {
 		const { uid } = req.params;
 
-		Model.model.findOneAndUpdate({ [uidField]: uid }, req.valid)
+		const field = /^[a-fA-F0-9]{24}$/.test(uid) ? "_id" : uidField;
+
+		Model.model.findOneAndUpdate({ [field]: uid }, req.valid)
 						.then(model => {
 							if(!model)
 							{
@@ -160,10 +209,12 @@ module.exports = options => {
 	router.delete('/:uid', deleteAuth, beforeDelete, (req, res) => {
 		const { uid } = req.params;
 
-		Model.model.deleteOne({ [uidField]: uid })
+		const field = /^[a-fA-F0-9]{24}$/.test(uid) ? "_id" : uidField;
+
+		Model.model.deleteOne({ [field]: uid })
 						.then(({ n }) => res.status(n > 0 ? 200 : 404).send(n > 0 ? "OK" : "Not Found"))
 						.catch(e => {
-							debug(`Endpoint ${name} failed to delete ${uidField}:${uid}!`);
+							debug(`Endpoint ${name} failed to delete ${field}:${uid}!`);
 							debug(e);
 							res.status(500).send("Internal Error");
 						});

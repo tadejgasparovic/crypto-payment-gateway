@@ -73,12 +73,44 @@ describe('Tests the "get merchants" API endpoint', () => {
 				});
 	});
 
+	it('Gets the test merchant', done => {
+		const testMerchant = new Merchant.model({
+			username: "testMerchant",
+			password: "test1234",
+			createdBy: "f".repeat(24)
+		});
+
+		testMerchant.save()
+						.then(() => {
+							return request(app)
+									.get(`/merchants/${testMerchant.username}`)
+									.set('Authorization', `Bearer ${adminToken}`)
+									.expect(200)
+									.expect(({ body }) => {
+										const { error } = Joi.validate(body, Joi.object().keys({
+																			_id: Joi.string().hex().length(24).required(),
+																			username: Joi.string().required(),
+																			createdBy: Joi.string().required(),
+																			createdAt: Joi.string().required()
+																		}));
+
+										if(error) throw Error(error);
+									});
+						})
+						.catch(console.error)
+						.finally(() => {
+							Merchant.model.deleteOne({ _id: testMerchant._id })
+											.catch(console.error)
+											.finally(() => done());
+						});
+	});
+
 });
 
 describe('Tests the "update merchant" API endpoint', () => {
 
 	it('Updates the test merchant\'s password', done => {
-		const testMerchant = Merchant.model({
+		const testMerchant = new Merchant.model({
 			username: "testMerchant",
 			password: "test1234",
 			createdBy: "f".repeat(24)
@@ -101,7 +133,7 @@ describe('Tests the "update merchant" API endpoint', () => {
 	});
 
 	it('Fails to update the test merchant\'s password with 400', done => {
-		const testMerchant = Merchant.model({
+		const testMerchant = new Merchant.model({
 			username: "testMerchant",
 			password: "test1234",
 			createdBy: "f".repeat(24)
@@ -128,7 +160,7 @@ describe('Tests the "update merchant" API endpoint', () => {
 describe('Tests the "delete merchant" API endpoint', () => {
 
 	it('Deletes a test merchant', done => {
-		const testMerchant = Merchant.model({
+		const testMerchant = new Merchant.model({
 			username: "testMerchant",
 			password: "test1234",
 			createdBy: "f".repeat(24)

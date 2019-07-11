@@ -80,6 +80,34 @@ describe('Tests the "read clients" API endpoint', () => {
 				});
 	});
 
+	it('Retreives a single client', done => {
+		const testClient = new Client.model({
+			...clientBody,
+			username: "testClient1",
+			createdBy: admin._id
+		});
+
+		testClient.save()
+					.then(() => {
+						return request(app)
+								.get(`/clients/${testClient.username}`)
+								.set('Authorization', `Bearer ${adminToken}`)
+								.expect(200)
+								.expect(({ body }) => {
+									expect(body).toHaveProperty('_id');
+									expect(body).toHaveProperty('username');
+									expect(body).toHaveProperty('createdAt');
+									expect(body.username).toBe(testClient.username);
+								});
+					})
+					.catch(console.error)
+					.finally(() => {
+						Client.model.deleteOne({ _id: testClient._id })
+										.catch(console.error)
+										.finally(() => done());
+					});
+	})
+
 });
 
 afterAll(done => {

@@ -12,8 +12,9 @@ module.exports = makeCrudEndpoint({
 	permissions: {
 		create: [ 'admin', 'client' ],
 		read: [ 'admin', 'client' ],
+		readSingle: [ 'admin', 'client' ],
 		update: [ 'admin', 'client' ],
-		delete: [ 'admin' ]
+		delete: [ 'admin', 'client' ]
 	},
 	validationSchemas: {
 		create: req => {
@@ -55,6 +56,13 @@ module.exports = makeCrudEndpoint({
 
 			return { ...model, createdBy };
 		}),
+		readSingle: (req, data) => {
+			const createdBy = req.query.raw ?
+								data.createdBy :
+								(data.createdBy || { username: "N/A" }).username;
+
+			return { ...data, createdBy };
+		},
 		before: action => (req, res, next) => {
 			const { name = null, symbol = null, adapter = 'rpc', createdBy, adapterProps } = req.body;
 

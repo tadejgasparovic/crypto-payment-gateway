@@ -8,7 +8,7 @@ module.exports = {
 
 	/* DB CONNECTION */
 	dbPort: null, // null = default: 27017
-	dbHost: "database", // null = default: 127.0.0.1
+	dbHost: null, // null = default: 127.0.0.1
 
 	/* COIN CONNECTION */
 	enabledAdapters: null, // null = default: [ 'rpc' ]

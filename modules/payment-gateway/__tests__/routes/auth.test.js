@@ -33,8 +33,7 @@ beforeAll(done => {
 
 			accounts.merchant = new Merchant.model({ ...user, createdBy: accounts.admin._id });
 			await accounts.merchant.save();
-
-			console.log(accounts);
+			
 		})().catch(console.error)
 			.finally(() => done());
 	});

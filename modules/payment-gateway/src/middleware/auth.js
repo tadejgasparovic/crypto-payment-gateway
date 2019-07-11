@@ -17,15 +17,15 @@ module.exports = (...authorizedAccountTypes) => (req, res, next) => {
 		return type === "Bearer" ? token : "";
 	};
 
-	if(!authorization) res.status(403).end();
-	else if(!verifyToken(parseAuthorization(), req.connection.remoteAddress)) res.status(403).end();
+	if(!authorization) res.status(403).send("Unauthorized");
+	else if(!verifyToken(parseAuthorization(), req.connection.remoteAddress)) res.status(403).send("Unauthorized");
 	else
 	{
 		const decodedToken = decodeToken(parseAuthorization());
 
 		if(!authorizedAccountTypes.includes(decodedToken.type))
 		{
-			res.status(403).end();
+			res.status(403).send("Unauthorized");
 			return;
 		}
 
@@ -35,11 +35,11 @@ module.exports = (...authorizedAccountTypes) => (req, res, next) => {
 
 		Account.findById(id)
 				.then(account => {
-					if(!account) res.status(403).end();
+					if(!account) res.status(403).send("Unauthorized");
 
 					req.token = decodedToken;
 					next();
 				})
-				.catch(e => res.status(500).end());
+				.catch(e => res.status(500).send("Internal Error"));
 	}
 }

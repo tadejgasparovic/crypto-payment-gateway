@@ -23,7 +23,7 @@ router.post('/', (req, res) => {
 	coinAdapter(req.body.currency).then(coin => {
 		if(!coin)
 		{
-			res.status(404).end();
+			res.status(404).send("Not Found");
 			return;
 		}
 
@@ -32,26 +32,26 @@ router.post('/', (req, res) => {
 			{
 				const tx = await coin.getRawTransaction(req.body.txid);
 
-				if(!tx) return res.status(500).end();
+				if(!tx) return res.status(500).send("Internal Error");
 
 				const { vout, confirmations, time } = tx;
 
 				for(let out of vout) await updatePayment(out, confirmations, time);
 
-				res.status(200).end();
+				res.status(200).send("OK");
 			}
 			catch(e)
 			{
 				debug(`Failed to get transaction "${req.body.txid}"`);
 				debug(e);
-				res.status(500).end();
+				res.status(500).send("Internal Error");
 			}
 		})();
 
 	}).catch(e => {
 		debug(`Walletnotify failed for currency "${req.body.currency}"!`);
 		debug(e);
-		res.status(500).end();
+		res.status(500).send("Internal Error");
 	});
 });
 

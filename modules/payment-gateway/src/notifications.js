@@ -25,22 +25,36 @@ const handle = (payment, type, cb, error = false) => () => {
 
 const onCreated = ({ _id, customerEmail, address, amount, currency, expiresAt }, cb) => {
 	debug(`Sending notification for payment ${_id} event 'created'`);
-	mail('payment/created', customerEmail, { _id, address, amount, currency, expiry: formatDate(config.dateFormat, expiresAt) }).then(handle(_id, 'created', cb)).catch(handle(_id, 'created', cb, true));
+	mail('payment/created', customerEmail, {
+			_id,
+			address,
+			amount,
+			currency,
+			expiry: formatDate(config.dateFormat, expiresAt)
+		})
+		.then(handle(_id, 'created', cb))
+		.catch(handle(_id, 'created', cb, true));
 }
 
 const onReceived = ({ _id, customerEmail }, cb) => {
 	debug(`Sending notification for payment ${_id} event 'received'`);
-	mail('payment/received', customerEmail, _id).then(handle(_id, 'received', cb)).catch(handle(_id, 'received', cb, true));
+	mail('payment/received', customerEmail, _id)
+		.then(handle(_id, 'received', cb))
+		.catch(handle(_id, 'received', cb, true));
 }
 
 const onFinalized = ({ _id, customerEmail }, cb) => {
 	debug(`Sending notification for payment ${_id} event 'finalized'`);
-	mail('payment/finalized', customerEmail, _id).then(handle(_id, 'finalized', cb)).catch(handle(_id, 'finalized', cb, true));
+	mail('payment/finalized', customerEmail, _id)
+		.then(handle(_id, 'finalized', cb))
+		.catch(handle(_id, 'finalized', cb, true));
 }
 
 const onExpired = ({ _id, customerEmail }, cb) => {
 	debug(`Sending notification for payment ${_id} event 'expired'`);
-	mail('payment/expired', customerEmail, _id).then(handle(_id, 'expired', cb)).catch(handle(_id, 'expired', cb, true));
+	mail('payment/expired', customerEmail, _id)
+		.then(handle(_id, 'expired', cb))
+		.catch(handle(_id, 'expired', cb, true));
 }
 
 PaymentEvents.on('created', onCreated);

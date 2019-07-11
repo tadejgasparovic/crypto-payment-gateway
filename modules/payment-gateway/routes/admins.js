@@ -8,6 +8,7 @@ module.exports = makeCrudEndpoint({
 	permissions: {
 		create: [ 'admin' ],
 		read: [ 'admin' ],
+		readSingle: [ 'admin' ],
 		update: [ 'admin' ],
 		delete: [ 'admin' ]
 	},
