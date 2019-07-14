@@ -6,53 +6,53 @@ const debug = require('debug')('payment-gateway:transactionsAPI');
 const config = require('../src/config');
 
 const coinAdapter = require('../src/coin-adapters');
+const validation = require('../src/middleware/validation');
 
 const Payment = require('../models/payment.model');
 
 const PaymentEvents = require('../src/events/payment.emitter');
 
-router.post('/', (req, res) => {
-	const { error } = Joi.validate(req.body, Joi.object().keys({
-		txid: Joi.string().hex().required(),
-		currency: Joi.string().regex(/^[A-Z0-9]{1,5}$/).required()
-	}));
+const schema = Joi.object().keys({
+	txid: Joi.string().hex().required(),
+	currency: Joi.string().regex(/^[A-Z0-9]{1,5}$/).required()
+});
 
-	if(error) return res.status(400).json({ error: (error.details && error.details.length > 0) ? error.details[0].message : "Body validation failed" }).end();
+router.post('/', validation(schema), async (req, res) => {
+	try
+	{
+		const coin = await coinAdapter(req.valid.currency);
 
-	// Fetch the full tansaction
-	coinAdapter(req.body.currency).then(coin => {
 		if(!coin)
 		{
 			res.status(404).send("Not Found");
 			return;
 		}
 
-		(async () => {
-			try
-			{
-				const tx = await coin.getRawTransaction(req.body.txid);
+		try
+		{
+			const tx = await coin.getRawTransaction(req.valid.txid);
 
-				if(!tx) return res.status(500).send("Internal Error");
+			if(!tx) return res.status(500).send("Internal Error");
 
-				const { vout, confirmations, time } = tx;
+			const { vout, confirmations, time } = tx;
 
-				for(let out of vout) await updatePayment(out, confirmations, time);
+			for(let out of vout) await updatePayment(out, confirmations, time);
 
-				res.status(200).send("OK");
-			}
-			catch(e)
-			{
-				debug(`Failed to get transaction "${req.body.txid}"`);
-				debug(e);
-				res.status(500).send("Internal Error");
-			}
-		})();
-
-	}).catch(e => {
-		debug(`Walletnotify failed for currency "${req.body.currency}"!`);
+			res.status(200).send("OK");
+		}
+		catch(e)
+		{
+			debug(`Failed to get transaction "${req.valid.txid}"`);
+			debug(e);
+			res.status(500).send("Internal Error");
+		}
+	}
+	catch(e)
+	{
+		debug(`Walletnotify failed for currency "${req.valid.currency}" with TX ${req.valid.txid}!`);
 		debug(e);
 		res.status(500).send("Internal Error");
-	});
+	}
 });
 
 async function updatePayment({ value, scriptPubKey }, confirmations, time)

@@ -43,7 +43,7 @@ The gateway provides multiple cron jobs required for normal operation of the ser
 All jobs can be configured in the config and started by executing [`src/jobs/index.js`](src/jobs/index.js).
 
 ### Expiry.job
-This cron job is in charge of triggering `payment.expired` events (which trigger respective email ntifications).
+This cron job is in charge of triggering `payment.expired` events (which trigger respective email notifications).
 
 ### Notifications.job
 This cron job is in charge of attempting to resend failed email notifications.

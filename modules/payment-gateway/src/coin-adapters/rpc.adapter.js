@@ -21,6 +21,11 @@ class RpcAdapter
 		return this._promisifyCall('getrawtransaction', [ txid, verbose ? 1 : 0 ]);
 	}
 
+	getBlock(hash)
+	{
+		return this._promisifyCall('getblock', [ hash ]);
+	}
+
 	_promisifyCall(method, args = [])
 	{
 		return new Promise((resolve, reject) => {

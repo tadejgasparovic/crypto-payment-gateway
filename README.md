@@ -58,21 +58,21 @@ where `<build-env>` is the value of the `BUILD_ENV` [environment variable](#dock
 ### Docker compose environment variables
 List of all environment variables supported by `docker-compose.yml`.
 
-| Variable             | Description                            | Required |
-|----------------------|----------------------------------------|:--------:|
-| BUILD_ENV            | `production` or `development`          | Yes      |
-| CONFIG_DIR           | Usually `./modules/config/`            | Yes      |
-| SSL_CERT             | SSL cert in PEM format                 | Yes      |
-| SSL_KEY              | SSL private key in PEM formats         | Yes      |
-| MONGO_DATA           | MongoDB data volume [More.](#database) | Yes      |
-| GATEWAY_PORT_PLAIN   | Gateway API HTTP port                  | Yes      |
-| GATEWAY_PORT_SECURE  | Gateway API HTTPS port                 | Yes      |
-| ADMIN_PORT_PLAIN     | Admin panel HTTP port                  | Yes      |
-| ADMIN_PORT_SECURE    | Admin panel HTTPS port                 | Yes      |
-| PORTAL_PORT_PLAIN    | Client portal HTTP port                | Yes      |
-| PORTAL_PORT_SECURE   | Client portal HTTPS port               | Yes      |
-| FRONTEND_PORT_PLAIN  | Checkout frontend HTTP port            | Yes      |
-| FRONTEND_PORT_SECURE | Checkout frontend HTTPS port           | Yes      |
+| Variable             | Description                             | Required |
+|----------------------|-----------------------------------------|:--------:|
+| BUILD_ENV            | `production` or `development`           | Yes      |
+| CONFIG_DIR           | Usually `./modules/config/`             | Yes      |
+| SSL_CERT             | SSL cert in PEM format                  | Yes      |
+| SSL_KEY              | SSL private key in PEM formats          | Yes      |
+| MONGO_DATA           | MongoDB data volume. [More.](#database) | Yes      |
+| GATEWAY_PORT_PLAIN   | Gateway API HTTP port                   | Yes      |
+| GATEWAY_PORT_SECURE  | Gateway API HTTPS port                  | Yes      |
+| ADMIN_PORT_PLAIN     | Admin panel HTTP port                   | Yes      |
+| ADMIN_PORT_SECURE    | Admin panel HTTPS port                  | Yes      |
+| PORTAL_PORT_PLAIN    | Client portal HTTP port                 | Yes      |
+| PORTAL_PORT_SECURE   | Client portal HTTPS port                | Yes      |
+| FRONTEND_PORT_PLAIN  | Checkout frontend HTTP port             | Yes      |
+| FRONTEND_PORT_SECURE | Checkout frontend HTTPS port            | Yes      |
 
 ## SSL
 The SSL certificate can be copied into [modules/ssl/](modules/ssl) or generated using the [`genssl.sh`](modules/ssl/genssl.sh) script (**for development only!**). If the certificate is located elsewhere on the system it can still be linked into the project by passing the relavant paths to `up.sh`.
