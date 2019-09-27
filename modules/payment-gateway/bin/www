@@ -76,6 +76,7 @@ require('../src/database')()(db => {
   function startServer()
   {
     const unhookNotifications = require('../src/notifications'); // Register payment event hooks for notifications
+    const unhookStatusHooks = require('../src/paymentStatusHook'); // Register payment event hooks for payment status hooks
 
     server.listen(port);
     server.on('error', _.curry(onError)(port));
@@ -92,8 +93,11 @@ require('../src/database')()(db => {
       
       server.close(() => {
 
-        debug("Http server closed..");
+        debug("Http server closed...");
+        
+        // Cleanup
         unhookNotifications();
+        unhookStatusHooks();
 
         db.close(() => process.exit(0));
       });

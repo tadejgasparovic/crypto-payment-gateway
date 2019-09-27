@@ -34,8 +34,8 @@ const paymentSchema = new Schema({
 	},
 	statusHook: {
 		type: String,
-		validate: value => /https?:\/\/[a-zA-Z0-9]+\.[a-zA-Z]{2,}.*/.test(value),
-		hide: true
+		validate: value => /https?:\/\/.*/.test(value),
+		hideJSON: true
 	},
 	confirmations: {
 		type: Number,

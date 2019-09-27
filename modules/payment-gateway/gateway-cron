@@ -1,2 +1,2 @@
-* * * * * /payment-gateway/src/jobs/index.js
+* * * * * cd /payment-gateway && bash /runCron.sh
 # Mandatory blank line

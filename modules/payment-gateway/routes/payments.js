@@ -4,6 +4,8 @@ const Joi = require('@hapi/joi');
 const debug = require('debug')('payment-gateway:paymentsAPI');
 const _ = require('lodash');
 
+const config = require('../src/config');
+
 const coinAdapter = require('../src/coin-adapters');
 
 const Payment = require('../models/payment.model');
@@ -57,7 +59,7 @@ router.post('/', validation(Payment.schema), (req, res, next) => {
 	})
 	.then(payment => {
 		PaymentEvents.created(payment);
-		res.send(payment);
+		res.send({ ...payment.toJSON(), requiredConfirmations: config.requiredConfirmations });
 	})
 	.catch(e => {
 		debug(`Payment creation failed for coin "${body.currency}"!`);
@@ -79,7 +81,7 @@ router.get('/:id', (req, res, next) => {
 	}
 
 	Payment.model.findById(params.id)
-					.then(payment => payment ? res.send(payment) : res.status(404).send("Not Found"))
+					.then(payment => payment ? res.send({ ...payment.toJSON(), requiredConfirmations: config.requiredConfirmations }) : res.status(404).send("Not Found"))
 					.catch(e => {
 						debug(`Cannot find payment with ID ${params.id}!`);
 						debug(e);
@@ -91,10 +93,11 @@ router.get('/:id', (req, res, next) => {
 // Get all payments
 router.get('/', auth('admin'), (req, res, next) => {
 	Payment.model.find({})
+					.sort('-createdAt')
 					.then(payments => {
 						if(payments)
 						{
-							res.send(payments.map(payment => payment.toObject()));
+							res.send(payments.map(payment => ({ ...payment.toObject(), requiredConfirmations: config.requiredConfirmations })));
 						}
 						else res.status(404).send("Not Found");
 					})

@@ -14,10 +14,10 @@ Crypto payment gateway is a lightweight ReactJS & NodeJS payment processor desig
    - [Docker compose environment variables](#docker-compose-environment-variables)
  - [SSL](#ssl)
  - [Database](#database)
- - [Oulor dev daemon](#oculor-dev-daemon)
+ - [Oculor dev daemon](#oculor-dev-daemon)
 
 ## Supported crypto-currencies
-The system has been developed with Oculor (<https://oculor.io>) in mind, but it can hook into virtually any crypto-currency out there as long as it supports a couple basic JSON RPC commands and `walletnotify` (**TODO: Use blocknotify instead!**).
+The system has been developed with Oculor (<https://oculor.io>) in mind, but it can hook into virtually any crypto-currency out there as long as it supports a couple basic JSON RPC commands and `walletnotify`
  - `getnewaddress` - used to generate a new payment address
  - `getrawtransaction` - used to retreive the full transaction received through `walletnotify`
  - `walletnotify` script should `POST` the JSON object `{ "txid": "<txid>", "currency": "<coin-symbol>" }` to the `https://payment-gateway/transactions` gateway API endpoint
@@ -48,6 +48,8 @@ The [payment gateway config](modules/config/gateway.config.js) can be edited at 
 
 ## Docker
 The entire payment gateway is designed to run under Docker. All Dockerfiles files can be found inside [docker/](docker) and `docker-compose.yml` is located in the root of this project.
+
+> **Quick start:** `./dev.sh`
 
 Bringing up the containers requires multiple environment variables to be set. To make setting these variables easier for development purposes you can use `up.sh` found in the root of this project. The comment in the begining of the script provides a working example command you can simply copy-paste into your terminal and bring up all required containers, 0 configuration required (provided you have generated the required [SSL certificates](#ssl)). To stop all containers you can use the helper script `down.sh`.
 

@@ -20,7 +20,7 @@ export async function login(username, password, type = "admin", remember = false
 
 	try
 	{
-		const { data: { token } } = await backend.post('/auth', { username, password, type });
+		const { data: { token } } = await backend.post('/auth', { username, password, type, extended: remember });
 
 		if(!token) throw Error("No token!");
 
@@ -61,20 +61,41 @@ export async function recoverToken()
 	}
 }
 
+export function hasRememberToken()
+{
+	return !!localStorage.getItem('access_token');
+}
+
 export async function isValid()
 {
 	if(!backend.defaults.headers.common['Authorization']) throw Error("No token");
 	return await backend.get('/auth/check');
 }
 
-export async function userInfo(type, identifier)
+export function userInfo(type, identifier)
 {
-	return backend.get(`/auth/${type}/${identifier}`);
+	return backend.get(`/${type}s/${identifier}`);
 }
 
 export async function logout()
 {
 	localStorage.removeItem('access_token');
-	// TODO: Invalidate the token on the server
+	
+	await backend.delete('/auth');
+
 	delete backend.defaults.headers.common['Authorization'];
+}
+
+export function createPayment(merchantId, amount, currency, customerEmail, statusHook)
+{
+	const payload = { merchantId, amount, currency, customerEmail };
+
+	if(statusHook) Object.assign(payload, { statusHook });
+
+	return backend.post('/payments', payload);
+}
+
+export function pollPayment(id)
+{
+	return backend.get(`/payments/${id}`);
 }

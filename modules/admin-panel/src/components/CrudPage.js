@@ -1,26 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import Container from '@material-ui/core/Container';
+import Layout from './partial/Layout';
+import CrudTable from './partial/CrudTable';
 
 import { makeStyles } from '@material-ui/core/styles';
 
-import NavDrawer from './partial/NavDrawer';
-import CrudTable from './partial/CrudTable';
-
 const useStyles = makeStyles(theme => ({
-	root: {
-		display: 'flex',
-		flexGrow: 1,
-		height: '100vh'
-	},
-	container: {
-		display: 'flex',
-		flexDirection: 'column',
-		alignItems: 'center',
-		justifyContent: 'center',
-		textAlign: 'center'
-	},
 	wrapper: {
 		padding: theme.spacing(3),
 		margin: theme.spacing(5),
@@ -30,29 +16,41 @@ const useStyles = makeStyles(theme => ({
 	}
 }));
 
-function CrudPage({ title, columns, isEditable, isDeletable, endpoint, endpointQuery, uidField, operations })
+function CrudPage({
+		title,
+		columns,
+		isEditable,
+		isDeletable,
+		endpoint,
+		endpointQuery,
+		uidField,
+		operations,
+		makeErrorMsg,
+		actions,
+		options
+	})
 {
 	const classes = useStyles();
 
 	return (
 
-		<div className={ classes.root }>
-			<NavDrawer />
-			<Container className={ classes.container } fixed>
-				<div className={ classes.wrapper }>
-					<CrudTable
-						uidField={ uidField }
-						endpoint={ endpoint }
-						endpointQuery={ endpointQuery }
-						title={ title }
-						columns={ columns }
-						isEditable={ isEditable }
-						isDeletable={ isDeletable }
-						operations={ operations }
-						/>
-					</div>
-			</Container>
-		</div>
+		<Layout>
+			<div className={ classes.wrapper }>
+				<CrudTable
+					uidField={ uidField }
+					endpoint={ endpoint }
+					endpointQuery={ endpointQuery }
+					title={ title }
+					columns={ columns }
+					isEditable={ isEditable }
+					isDeletable={ isDeletable }
+					operations={ operations }
+					makeErrorMsg={ makeErrorMsg }
+					options={ options }
+					actions={ actions }
+					/>
+			</div>
+		</Layout>
 
 	);
 }
@@ -64,7 +62,10 @@ CrudPage.propTypes = {
 	columns: PropTypes.array.isRequired,
 	endpoint: PropTypes.string.isRequired,
 	endpointQuery: PropTypes.object,
-	operations: PropTypes.array
+	operations: PropTypes.array,
+	makeErrorMsg: PropTypes.func,
+	actions: PropTypes.array,
+	operations: PropTypes.object
 };
 
 export default CrudPage;

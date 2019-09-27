@@ -2,6 +2,8 @@ const request = require('supertest');
 const Joi = require('@hapi/joi');
 const _ = require('lodash');
 
+const config = require('../../src/config');
+
 const app = require('../../app');
 
 const Payment = require('../../models/payment.model');
@@ -18,6 +20,7 @@ const paymentValidator = Joi.object().keys({
 	currency: Joi.string().alphanum().min(1).max(5),
 	customerEmail: Joi.string().email({ minDomainSegments: 2 }).required(),
 	confirmations: Joi.number().integer().min(0).required(),
+	requiredConfirmations: Joi.number().integer().valid(config.requiredConfirmations).required(),
 	createdAt: Joi.date().required(),
 	expiresAt: Joi.date().greater(Joi.ref('createdAt')).required(),
 	paidAt: Joi.valid(null).required(),

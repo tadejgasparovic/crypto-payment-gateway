@@ -13,7 +13,7 @@ import ListItemText from '@material-ui/core/ListItemText';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 
-import SettingsIcon from '@material-ui/icons/Settings';
+//import SettingsIcon from '@material-ui/icons/Settings';
 import VpnKeyIcon from '@material-ui/icons/VpnKey';
 import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
 import ShoppingCartIcon from '@material-ui/icons/ShoppingCart';
@@ -23,6 +23,8 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import DashboardIcon from '@material-ui/icons/Dashboard';
 import PermIdentityIcon from '@material-ui/icons/PermIdentity';
 import LocalAtmIcon from '@material-ui/icons/LocalAtm';
+import PaymentIcon from '@material-ui/icons/Payment';
+import RestoreIcon from '@material-ui/icons/Restore';
 
 import { makeStyles } from '@material-ui/core/styles';
 
@@ -60,6 +62,16 @@ const drawerLinks = [
 		title: "Administrators",
 		icon: SupervisorAccountIcon,
 		path: "/admins"
+	},
+	{
+		title: "Deposit",
+		icon: PaymentIcon,
+		path: "/deposit"
+	},
+	{
+		title: "Blockchain rescans",
+		icon: RestoreIcon,
+		path: "/rescans"
 	}
 ];
 
@@ -169,7 +181,7 @@ function NavDrawer()
 {
 	const classes = useStyles();
 	const [ drawerOpen, setDrawerOpen ] = useState(false);
-
+	
 	return (
 
 		<div className={ classes.root }>

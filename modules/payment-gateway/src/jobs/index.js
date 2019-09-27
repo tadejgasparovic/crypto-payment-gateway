@@ -16,7 +16,13 @@ require('../database')()(db => {
 	require('../email').verify().then(() => {
 		
 		const unhookNotifications = require('../notifications');
-		process.on('exit', unhookNotifications);
+		const unhookStatusHooks = require('../paymentStatusHook');
+
+		// Clean up
+		process.on('exit', () => {
+			unhookNotifications();
+			unhookStatusHooks();
+		});
 
 		scheduler(db);
 	}).catch(e => debug(`Cron scheduler failed to setup. ${e}`));
@@ -25,6 +31,7 @@ require('../database')()(db => {
 function scheduler(db)
 {
 	_.keys(config.cronJobPeriods).forEach(job => {
+
 		if(!fs.existsSync(path.resolve(`src/jobs/${job}.job.js`)))
 		{
 			debug(`WARNING: Job '${job}' is configured, but doesn't exist!`);
@@ -60,11 +67,29 @@ function scheduler(db)
 		if(promise) jobQueue.push(promise);
 	});
 
-	Promise.all(jobQueue)
-			.finally(() => {
-				debug('Cron jobs finished!');
-				console.timeEnd('Total time');
+	const finish = err => {
+			debug('Cron jobs finished!');
 
-				db.close(() => process.exit(0));
+			if(Array.isArray(err))
+			{
+				const errors = err.filter(e => !!e);
+
+				if(errors.length > 0)
+				{
+					debug("Scheuler encountered the following errors:");
+					debug("----------------------------------------------");
+					errors.forEach(debug);
+					debug("----------------------------------------------");
+				}
+			}
+
+			db.close(() => {
+				console.timeEnd('Total time');
+				process.exit(0);
 			});
+		}
+
+	Promise.all(jobQueue)
+			.then(finish)
+			.catch(finish);
 }

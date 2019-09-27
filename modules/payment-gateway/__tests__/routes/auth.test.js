@@ -6,6 +6,7 @@ let app = require('../../app');
 const Admin = require('../../models/admin.model');
 const Client = require('../../models/client.model');
 const Merchant = require('../../models/merchant.model');
+const Token = require('../../models/token.model');
 
 const token = require('../../src/token');
 
@@ -48,10 +49,26 @@ describe('Tests the "login" API endpoint', () => {
 					.post('/auth')
 					.send({ ...user, type })
 					.expect(200)
-					.expect(({ body: { token: tkn } }) => {
-						const valid = token.verify(tkn, '127.0.0.1');
+					.then(({ body: { token: tkn } }) => Promise.all([ token.verify(tkn, '127.0.0.1'), Promise.resolve(tkn) ]))
+					.then(([ valid, token ]) => Token.model.findOne({ token }))
+					.then(tokenModel => {
+						expect(tokenModel).toBeTruthy();
+						expect(tokenModel.expiresAt - tokenModel.createdAt).toBeLessThanOrEqual(1 * 60 * 60 * 1000 + 10);
+						expect(tokenModel.expiresAt - tokenModel.createdAt).toBeGreaterThan(0.5 * 60 * 60 * 1000);
+					});
+		});
 
-						if(!valid) throw Error(`Invalid token for account type "${type}"`);
+		it(`Gets a valid extended token for "${type}" account`, () => {
+			return request(app)
+					.post('/auth')
+					.send({ ...user, type, extended: true })
+					.expect(200)
+					.then(({ body: { token: tkn } }) => Promise.all([ token.verify(tkn, '127.0.0.1'), Promise.resolve(tkn) ]))
+					.then(([ valid, token ]) => Token.model.findOne({ token }))
+					.then(tokenModel => {
+						expect(tokenModel).toBeTruthy();
+						expect(tokenModel.expiresAt - tokenModel.createdAt).toBeLessThanOrEqual(30 * 24 * 60 * 60 * 1000 + 10);
+						expect(tokenModel.expiresAt - tokenModel.createdAt).toBeGreaterThan(1 * 60 * 60 * 1000);
 					});
 		});
 	});
@@ -75,10 +92,10 @@ describe('Tests the "login" API endpoint', () => {
 describe('Tests the "check API endpoint', () => {
 
 	accountTypes.map(type => {
-		it(`Validates a token for "${type}"`, () => {
-			const tkn = token(accounts[type].id, type, '127.0.0.1');
+		it(`Validates a token for "${type}"`, async () => {
+			const tkn = await token(accounts[type].id, type, '127.0.0.1');
 
-			return request(app)
+			await request(app)
 					.get('/auth/check')
 					.set('Authorization', `Bearer ${tkn}`)
 					.expect(200);

@@ -4,7 +4,7 @@ const mongooseHidden = require('mongoose-hidden')({ defaultHidden: { __v: true }
 
 const config = require('../src/config');
 
-const notificationSchema = new Schema({
+const statusHookSchema = new Schema({
 	payment: {
 		type: ObjectId,
 		ref: "payments",
@@ -15,23 +15,32 @@ const notificationSchema = new Schema({
 		required: true,
 		enum: [ 'created', 'received', 'finalized', 'expired' ]
 	},
+	retries: {
+		type: Number,
+		required: true,
+		default: 0
+	},
+	statusCode: {
+		type: Number,
+		required: true,
+		default: 0
+	},
+	responseMessage: {
+		type: String,
+		default: ""
+	},
 	createdAt: {
 		type: Date,
 		required: true,
 		default: Date.now
 	},
-	sentAt: Date,
-	retries: {
-		type: Number,
-		required: true,
-		default: 0
-	}
+	lastRequestAt: Date
 });
 
-notificationSchema.index({ payment: 1, type: 1 });
+statusHookSchema.index({ payment: 1, type: 1 });
 
-notificationSchema.plugin(mongooseHidden);
+statusHookSchema.plugin(mongooseHidden);
 
 module.exports = {
-	model: mongoose.model('notifications', notificationSchema)
+	model: mongoose.model('statusHooks', statusHookSchema)
 };

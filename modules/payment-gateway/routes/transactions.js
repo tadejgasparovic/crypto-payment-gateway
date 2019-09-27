@@ -3,21 +3,30 @@ const router = express.Router();
 const Joi = require('@hapi/joi');
 const debug = require('debug')('payment-gateway:transactionsAPI');
 
+const rescanAsyncWorker = require('../src/rescanAsyncWorker');
 const config = require('../src/config');
 
 const coinAdapter = require('../src/coin-adapters');
+
 const validation = require('../src/middleware/validation');
+const auth = require('../src/middleware/auth');
 
-const Payment = require('../models/payment.model');
-
-const PaymentEvents = require('../src/events/payment.emitter');
+const Rescan = require('../models/rescan.model');
 
 const schema = Joi.object().keys({
 	txid: Joi.string().hex().required(),
-	currency: Joi.string().regex(/^[A-Z0-9]{1,5}$/).required()
+	currency: Joi.string().regex(/^[A-Z0-9]{1,5}$/).required(),
+	secret: Joi.string()
 });
 
 router.post('/', validation(schema), async (req, res) => {
+	
+	if(req.valid.secret !== config.txPushSecret)
+	{
+		res.status(403).send("Unauthorized");
+		return;
+	}
+
 	try
 	{
 		const coin = await coinAdapter(req.valid.currency);
@@ -36,7 +45,7 @@ router.post('/', validation(schema), async (req, res) => {
 
 			const { vout, confirmations, time } = tx;
 
-			for(let out of vout) await updatePayment(out, confirmations, time);
+			for(let out of vout) await rescanAsyncWorker.updatePayment(out, confirmations, time);
 
 			res.status(200).send("OK");
 		}
@@ -55,72 +64,115 @@ router.post('/', validation(schema), async (req, res) => {
 	}
 });
 
-async function updatePayment({ value, scriptPubKey }, confirmations, time)
-{
-	if(!value || !scriptPubKey || !scriptPubKey.addresses || scriptPubKey.addresses.constructor !== Array) return;
+const rescanSchema = Joi.object().keys({
+	block: [ Joi.string().regex(/^[a-fA-F0-9]{64}$/).required(), Joi.number().integer().min(0).required() ],
+	currency: Joi.string().regex(/^[A-Z0-9]{1,5}$/).required()
+});
 
-	for(let address of scriptPubKey.addresses)
+// Start a rescan
+router.post('/rescan', auth('admin'), validation(rescanSchema), async (req, res) => {
+	const { currency, block } = req.valid;
+
+	try
 	{
-		const payment = await Payment.model.findOne({ address }).exec();
+		let activeRescan = await Rescan.model.findOne({ status: 'running' });
 
-		if(!payment) continue;
-
-		// If the payment has expired, ignore it
-		if(payment.expiresAt < new Date(time * 1000))
+		if(activeRescan)
 		{
-			debug(`Received TX for expired payment "${payment.id}"!`);
-			PaymentEvents.looseFunds(payment, value);
-			continue;
+			res.status(409).send("Conflict");
+			return;
 		}
 
-		// If the value is too low, ignore it
-		if(value < payment.amount)
+		const coin = await coinAdapter(currency);
+
+		if(!coin)
 		{
-			debug(`TX for payment "${payment.id}" received, but ${value} ${payment.currency} doesn't fill the required ${payment.amount} ${payment.currency}! Ignoring.`);
-			PaymentEvents.looseFunds(payment, value);
-			continue;
+			res.status(404).send("Not Found");
+			return;
 		}
 
-		// If the payment is already finalized, ignore it
-		if(payment.paidAt)
+		let firstBlock = block;
+
+		if(/^[a-fA-F0-9]{64}$/.test(block))
 		{
-			debug(`TX received for payment "${payment.id}", but payment is already finalized. Ignoring.`);
-			PaymentEvents.looseFunds(payment, value);
-			continue;
-		}
+			const tmpBlock = await coin.getBlock(block);
 
-		const eventDispatchOrder = [ 'received', 'confirmation', 'finalized' ]; // Helps us fire queued events in the correct order
-		const eventQueue = []; // Track the events we need to fire after we're done
-
-
-		if(confirmations > payment.confirmations) eventQueue.push('confirmation');
-
-		payment.confirmations = confirmations;
-
-		if(confirmations < config.requiredConfirmations && !payment.receivedAt)
-		{
-			payment.receivedAt = Date.now();
-			eventQueue.push('received');
-		}
-		else if(confirmations >= config.requiredConfirmations && !payment.paidAt)
-		{
-			if(!payment.receivedAt)
+			if(!tmpBlock || !tmpBlock.height)
 			{
-				payment.receivedAt = Date.now();
-				eventQueue.push('received');
+				res.status(500).send("Internal Error");
+				return;
 			}
-			
-			payment.paidAt = Date.now();
-			eventQueue.push('finalized');
+
+			firstBlock = tmpBlock.height;
 		}
 
-		await payment.save();
-
-		// Fire all queued events in the correct order
-		eventDispatchOrder.forEach(e => {
-			if(eventQueue.includes(e) && typeof PaymentEvents[e] === 'function') PaymentEvents[e](payment);
+		activeRescan = new Rescan.model({
+			currency,
+			firstBlock
 		});
+
+		await activeRescan.save();
+
+		rescanAsyncWorker(activeRescan);
+		
+		res.status(200).send(activeRescan);
 	}
-}
+	catch(e)
+	{
+		debug(`Couldn't start a rescan from block ${block} for currency ${currency}`);
+		debug(e);
+		if(!res.finished) res.status(500).send("Internal Error");
+	}
+});
+
+// Stop a rescan
+router.post('/rescan/:id/stop', auth('admin'), async (req, res) => {
+	try
+	{
+		const { id } = req.params;
+
+		if(!/[0-9a-fA-F]{24}/.test(id))
+		{
+			res.status(400).send({ error: "Invalid rescan ID" });
+			return;
+		}
+
+		const activeRescan = await Rescan.model.findById(id);
+
+		if(!activeRescan)
+		{
+			res.status(404).send("Not Found");
+			return;
+		}
+
+		if(activeRescan.status !== 'running')
+		{
+			res.status(400).send({ error: "Can't stop a rescan which isn't running" });
+			return;
+		}
+
+		if(!rescanAsyncWorker.isRunning())
+		{
+			res.status(400).send({ error: "No active worker for this rescan" });
+			return;
+		}
+
+		rescanAsyncWorker.stop(activeRescan => res.status(200).send(activeRescan));
+	}
+	catch(e)
+	{
+		debug(`Couldn't stop a rescan from block ${block} for currency ${currency}`);
+		debug(e);
+		res.status(500).send("Internal Error");
+	}
+});
+
+// Get a list of rescans
+router.get('/rescan', auth('admin'), async (req, res) => {
+
+	const rescans = await Rescan.model.find({});
+
+	res.status(200).send(rescans);
+});
 
 module.exports = router;

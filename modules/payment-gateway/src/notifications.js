@@ -7,55 +7,58 @@ const mail = require('./email');
 const PaymentEvents = require('./events/payment.emitter');
 const config = require('./config');
 
-const handle = (payment, type, cb, error = false) => () => {
-	Notification.findOne({ payment }).exec().then(notification => {
+const saveNotification = (notification, cb, error = false) => {
+	if(!error) notification.sentAt = new Date();
+	else notification.retries++;
+
+		notification.save()
+			.then(() => cb && cb())
+			.catch((e = Error()) => debug(e) || (cb && cb(e)));
+}
+
+const makeMailBody = (event, { _id, address, amount, currency, expiresAt }) => {
+	switch(event)
+	{
+		case 'created':
+			return {
+					_id,
+					address,
+					amount,
+					currency,
+					expiry: formatDate(config.dateFormat, expiresAt)
+				};
+		default:
+			return _id;
+	}
+}
+
+const makeListener = event => (payment, cb) => {
+
+	Notification.findOne({ payment: payment._id, type: event }).exec().then(notification => {
 
 		if(!notification)
 		{
-			notification = new Notification({ payment, type });
+			notification = new Notification({ payment: payment._id, type: event });
 		}
 
-		if(!error) notification.sentAt = Date.now();
+		if(notification.sentAt) return;
 
-		return notification.save();
+		debug(`Sending notification for payment ${payment._id} event '${event}'`);
+
+		mail(`payment/${event}`, payment.customerEmail, makeMailBody(event, payment))
+			.then(() => saveNotification(notification, cb))
+			.catch(() => saveNotification(notification, cb, true));
 	})
-	.then(() => cb && cb())
-	.catch((e = Error()) => debug(e) || (cb && cb(e)));
+	.catch(err => {
+		debug(err);
+		cb && cb();
+	});
 }
 
-const onCreated = ({ _id, customerEmail, address, amount, currency, expiresAt }, cb) => {
-	debug(`Sending notification for payment ${_id} event 'created'`);
-	mail('payment/created', customerEmail, {
-			_id,
-			address,
-			amount,
-			currency,
-			expiry: formatDate(config.dateFormat, expiresAt)
-		})
-		.then(handle(_id, 'created', cb))
-		.catch(handle(_id, 'created', cb, true));
-}
-
-const onReceived = ({ _id, customerEmail }, cb) => {
-	debug(`Sending notification for payment ${_id} event 'received'`);
-	mail('payment/received', customerEmail, _id)
-		.then(handle(_id, 'received', cb))
-		.catch(handle(_id, 'received', cb, true));
-}
-
-const onFinalized = ({ _id, customerEmail }, cb) => {
-	debug(`Sending notification for payment ${_id} event 'finalized'`);
-	mail('payment/finalized', customerEmail, _id)
-		.then(handle(_id, 'finalized', cb))
-		.catch(handle(_id, 'finalized', cb, true));
-}
-
-const onExpired = ({ _id, customerEmail }, cb) => {
-	debug(`Sending notification for payment ${_id} event 'expired'`);
-	mail('payment/expired', customerEmail, _id)
-		.then(handle(_id, 'expired', cb))
-		.catch(handle(_id, 'expired', cb, true));
-}
+const onCreated = makeListener('created');
+const onReceived = makeListener('received');
+const onFinalized = makeListener('finalized');
+const onExpired = makeListener('expired');
 
 PaymentEvents.on('created', onCreated);
 PaymentEvents.on('received', onReceived);

@@ -22,9 +22,8 @@ beforeAll(done => {
 	    });
 
 	    defaultAccount.save()
-	    				.then(() => {
-	    					adminToken = token(defaultAccount._id, 'admin', '127.0.0.1');
-	    				})
+	    				.then(() => token(defaultAccount._id, 'admin', '127.0.0.1'))
+	    				.then(token => adminToken = token)
 	    				.catch(console.error)
 	    				.finally(() => done());
 	});

@@ -6,25 +6,57 @@ const PaymentEvents = require('../events/payment.emitter');
 
 async function work()
 {
-	const expiredPayments = (await Payment.aggregate([
-			{
-				$match: { paidAt: null, expiresAt: { $lte: new Date() } }
-			},
-			{
-				$lookup: {
-					from: "notifications",
-					localField: "_id",
-					foreignField: "payment",
-					as: "notifications"
+	try
+	{
+		const expiredPayments = await Payment.aggregate([
+				{
+					$match: {
+						paidAt: null,
+						expiresAt: { $lte: new Date() }
+					}
+				},
+				{
+					$lookup: {
+						from: "notifications",
+						as: "notifications",
+						let: {
+							id: '$_id'
+						},
+						pipeline: [{
+							$match: {
+								$expr: {
+									$and: [
+										{ $eq: [ '$type', 'expired' ] },
+										{ $eq: [ '$payment', '$$id' ] }
+									]
+								}
+							}
+						}]
+					}
+				},
+				{
+					$match: {
+						notifications: {
+							$eq: []
+						}
+					}
 				}
-			}
-		]).exec()).filter(payment => payment.notifications.length === 0);
+			]).exec();
 
-	debug(`Found ${expiredPayments.length} expired payments`);
+		debug(`Found ${expiredPayments.length} expired payments`);
 
-	const promises = expiredPayments.map(payment => new Promise((resolve, reject) => PaymentEvents.expired(payment, err => err ? reject(err) : resolve())));
+		const promisify = payment => new Promise((resolve, reject) => {
+			PaymentEvents.expired(payment, err => err ? reject(err) : resolve());
+		});
 
-	return Promise.all(promises);
+		const promises = expiredPayments.map(promisify);
+
+		await Promise.all(promises);
+	}
+	catch(e)
+	{
+		debug(e);
+	}
 }
 
 module.exports = work;

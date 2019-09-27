@@ -26,11 +26,15 @@ ENV IS_DOCKER 1
 
 # Configure crontab
 RUN chmod +x /payment-gateway/src/jobs/index.js
+COPY runCron.sh /runCron.sh
+RUN chmod +x /runCron.sh
 COPY gateway-cron /etc/cron.d/gateway-cron
 RUN chmod 0644 /etc/cron.d/gateway-cron && \
-	crontab /etc/cron.d/gateway-cron && \
-	service cron start
+	crontab /etc/cron.d/gateway-cron
+
+COPY start.sh ./start.sh 
+RUN chmod +x start.sh
 
 EXPOSE 3000/tcp
 
-CMD [ "pm2-runtime", "start", "ecosystem.config.js", "--env", "${BUILD_ENV}" ]
+CMD [ "./start.sh", "${BUILD_ENV}" ]

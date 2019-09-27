@@ -16,6 +16,8 @@ import Clients from './Clients';
 import Coins from './Coins';
 import Admins from './Admins';
 import Payments from './Payments';
+import Deposit from './Deposit';
+import Rescans from './Rescans';
 
 const useStyles = makeStyles(theme => ({
 
@@ -42,6 +44,8 @@ export default () => {
 			      <Route exact path="/coins" component={ Coins } />
 			      <Route exact path="/admins" component={ Admins } />
 			      <Route exact path="/payments" component={ Payments } />
+			      <Route exact path="/deposit" component={ Deposit } />
+			      <Route exact path="/rescans" component={ Rescans } />
 			    </Switch>
 		    </Grid>
 	    </Grid>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import MaterialTable from 'material-table';
 import { NotificationManager } from 'react-notifications';
@@ -29,9 +29,22 @@ import withAuth from './withAuth';
 
 import config from '../../config';
 
-function CrudTable({ title, columns, isEditable, isDeletable, endpoint, endpointQuery, uidField = 'username', isAuth, operations = [ 'create', 'update', 'delete' ] })
+function CrudTable({
+		title,
+		columns,
+		isEditable,
+		isDeletable,
+		endpoint,
+		endpointQuery,
+		uidField = 'username',
+		isAuth,
+		operations = [ 'create', 'update', 'delete' ],
+		makeErrorMsg,
+		actions,
+		options = {}
+	})
 {
-	const makeTargetEndpoint = modifier => {
+	const makeTargetEndpoint = useCallback(modifier => {
 		modifier = modifier || "";
 		const separator = endpoint.endsWith('/') ? "" : "/";
 		const mod = modifier.startsWith('/') ? modifier.slice(1) : modifier;
@@ -40,7 +53,7 @@ function CrudTable({ title, columns, isEditable, isDeletable, endpoint, endpoint
 						.join('&');
 
 		return `${endpoint}${separator}${mod}?${query}`;
-	}
+	}, [ endpoint, endpointQuery ]);
 
 	const [ data, setData ] = useState([]);
 	const [ loading, setLoading ] = useState(true);
@@ -62,14 +75,27 @@ function CrudTable({ title, columns, isEditable, isDeletable, endpoint, endpoint
 				})
 				.finally(() => setLoading(false));
 
-	}, [ isAuth, nonce, endpoint ]);
+	}, [ isAuth, nonce, endpoint, makeTargetEndpoint ]);
 
 	const mappedColumns = columns.map((col, i) => {
 		if(col.type === 'datetime')
 		{
 			return {
 				...col,
-				render: row => row && row[col.field] ? formatDate(config.dateFormat, new Date(row[col.field])) : "N/A"
+				render: row => {
+					if(!row) return null;
+
+					const formatted = row[col.field] ? formatDate(config.dateFormat, new Date(row[col.field])) : "N/A";
+
+					if(typeof col.render === 'function')
+					{
+						row[col.field] = formatted;
+
+						return col.render(row);
+					}
+
+					return formatted;
+				}
 			};
 		}
 		else if(((!col.type && !col.lookup) || col.type === 'numeric') && !col.editComponent)
@@ -100,19 +126,37 @@ function CrudTable({ title, columns, isEditable, isDeletable, endpoint, endpoint
 		return col;
 	});
 
-	const makePostData = (newData, ...validEditable) => 
-							_.pickBy(newData, (val, key) => {
+	const makePostData = (newData, ...validEditable) => {
+							const mapFields = {};
+
+							const payload = _.pickBy(newData, (val, key) => {
 								const colDef = _.find(columns, ({ field }) => field === key) || { editable: "always" };
+
+								if(colDef.postField) mapFields[key] = colDef.postField;
 
 								colDef.editable = colDef.editable || "always";
 
 								return validEditable.includes(colDef.editable) || colDef.field === uidField;
 							});
 
+							return _.fromPairs(_.toPairs(payload).map(([ key, value ]) => ([ mapFields[key] || key, value ])));
+						}
+
 	const errorMessage = e => {
 		if(e.response)
 		{
 			const { response: { status, data } } = e;
+			
+			if(typeof makeErrorMsg === 'function')
+			{
+				const errorMsg = makeErrorMsg(status, data);
+
+				if(errorMsg)
+				{
+					NotificationManager.error(errorMsg, "Error");
+					return;
+				}
+			}
 			
 			if(status === 400 && data.error)
 			{
@@ -240,8 +284,10 @@ function CrudTable({ title, columns, isEditable, isDeletable, endpoint, endpoint
 				ViewColumn: ViewColumnIcon
 			}}
 			options={{
-				exportButton: true
+				exportButton: true,
+				...options
 			}}
+			actions={ actions }
 		/>
 
 	);
@@ -257,7 +303,10 @@ CrudTable.propTypes = {
 	operations: PropTypes.arrayOf(PropTypes.string),
 	uidField: PropTypes.string,
 	endpointQuery: PropTypes.object,
-	readOnly: PropTypes.bool
+	readOnly: PropTypes.bool,
+	makeErrorMsg: PropTypes.func,
+	actions: PropTypes.array,
+	options: PropTypes.object
 };
 
 export default withAuth(CrudTable);

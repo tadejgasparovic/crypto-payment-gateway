@@ -57,17 +57,17 @@ beforeAll(done => {
 			admin = new Admin.model({ username: "admin", password: "admin" });
 			await admin.save();
 
-			adminToken = token(admin.id, 'admin', '127.0.0.1');
+			adminToken = await token(admin.id, 'admin', '127.0.0.1');
 
 			client = new Client.model({ username: "client", password: "client", createdBy: admin._id });
 			await client.save();
 
-			clientToken = token(client.id, 'client', '127.0.0.1');
+			clientToken = await token(client.id, 'client', '127.0.0.1');
 
 			merchant = new Merchant.model({ username: "merchant", password: "merchant", createdBy: admin._id });
 			await merchant.save();
 
-			merchantToken = token(merchant.id, 'merchant', '127.0.0.1');
+			merchantToken = await token(merchant.id, 'merchant', '127.0.0.1');
 		})().catch(console.error)
 			.finally(() => done());
 	});

@@ -24,6 +24,6 @@ module.exports = (suffix = '') => callback => {
 	});
 	mongoose.connection.on('error', e => {
 		debug(e);
-		if(e.name === 'MongoNetworkError') process.exit(1); // Connection failed on initial connect
+		if(e.name === 'MongoNetworkError') process.exit(2); // Connection failed on initial connect
 	});
 }

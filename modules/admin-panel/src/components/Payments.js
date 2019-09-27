@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 import CrudPage from './CrudPage';
 
@@ -42,7 +42,7 @@ function Payments()
 				},
 				{
 					title: "Status Hook",
-					render: ({ statusHook }) => statusHook ? "Yes" : "No"
+					render: ({ statusHook }) => statusHook ? <span title={ statusHook }>Yes</span> : "No"
 				},
 				{
 					title: "Confirmations",
@@ -61,7 +61,11 @@ function Payments()
 				{
 					title: "Expires At",
 					field: "expiresAt",
-					type: "datetime"
+					type: "datetime",
+					render: row => {
+						const color = Date.now() - new Date(row.expiresAt) >= 0 ? "red" : "green";
+						return <span style={{ color }}>{ row.expiresAt }</span>;
+					}
 				}
 			]}
 			/>

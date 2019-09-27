@@ -4,23 +4,27 @@ module.exports = {
 	dateFormat: "MM/dd/yyyy hh:mm:ss",
 
 	/* HTTP & HTTPS */
-	host: "127.0.0.1:3200", // IP or domain name of the gateway including HTTPS port
+	host: "127.0.0.1:3200", // IP or domain name of the gateway including HTTPS port (if non-standard)
 
 	/* DB CONNECTION */
 	dbPort: null, // null = default: 27017
-	dbHost: null, // null = default: 127.0.0.1
+	dbHost: "database", // null = default: 127.0.0.1
 
 	/* COIN CONNECTION */
 	enabledAdapters: null, // null = default: [ 'rpc' ]
+	txPushSecret: "w3r4t5zr4t5zthj", // Requests to the wallet notify /transactions endpoint must provide this secret token for the submitted TXID to be accepted
 
 	/* PAYMENTS */
 	paymentWindowMins: 15, // Payment window in minutes. After this window the payment will be automatically canceled
 	requiredConfirmations: 14, // Number of required confirmations the TX needs to receive before the payment is accepted
+	maxStatusHookFailures: 10, // Max. number of allowed failed status hook attempts. After this many attempts the gateway will no longer attempt to contact the hook.
+	maxNotificationFailures: 10, // Max. number of allowed failed notifications. After this many attempts the gateway will no longer attempt to resend the failed notification.
 
 	/* CRON JOBS */
 	cronJobPeriods: {
 		expiry: 2, // Check for expired payments every 2 mins
-		notifications: 1 // Check for any failed notifications and attempt to resend them every minute
+		notifications: 1, // Check for any failed notifications and attempt to resend them every minute
+		expiredHooks: 5 // Check for any failed status hooks and attempt to resend them every 5 mins
 	},
 
 	/* EMAIL */

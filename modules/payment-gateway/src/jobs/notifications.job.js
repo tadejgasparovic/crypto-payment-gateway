@@ -1,4 +1,5 @@
 const debug = require('debug')('payment-gateway:notificationsCron');
+const config = require('../config');
 
 const Notification = require('../../models/notification.model').model;
 const Payment = require('../../models/payment.model').model;
@@ -7,7 +8,7 @@ const PaymentEvents = require('../events/payment.emitter');
 
 async function work()
 {
-	const notifications = await Notification.find({ sentAt: null }).populate('payment').exec();
+	const notifications = await Notification.find({ sentAt: null, retries: { $lt: config.maxNotificationFailures } }).populate('payment').exec();
 
 	debug(`Found ${notifications.length} failed notifications`);
 
@@ -19,7 +20,7 @@ async function work()
 		else reject(Error(`No event trigger function for '${notification.type}'`));
 	}));
 
-	return Promise.all(promises);
+	await Promise.all(promises);
 }
 
 module.exports = work;

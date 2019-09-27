@@ -33,7 +33,7 @@ beforeAll(done => {
 			admin = new Admin.model({ username: "admin", password: "admin" });
 			await admin.save();
 
-			adminToken = token(admin.id, 'admin', '127.0.0.1');
+			adminToken = await token(admin.id, 'admin', '127.0.0.1');
 		})().catch(console.error)
 			.finally(() => done());
 	});

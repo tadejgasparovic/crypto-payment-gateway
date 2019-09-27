@@ -26,7 +26,7 @@ const withAuth = Component => withRouter(props =>
 
 			});
 
-	}, []);
+	}, [ props.history ]);
 
 	return <Component isAuth={ isAuth } user={ user } { ...props } />;
 })

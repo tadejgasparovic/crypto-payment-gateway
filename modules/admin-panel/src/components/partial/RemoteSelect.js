@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
 import _ from 'lodash';
@@ -205,7 +205,7 @@ const components = {
 	ValueContainer,
 };
 
-function UserSelect({ type, onChange, value, label, isAuth })
+function RemoteSelect({ selectable, endpoint, onChange, value, label, mapResult, className, isAuth })
 {
 	const classes = useStyles();
 	const theme = useTheme();
@@ -216,10 +216,10 @@ function UserSelect({ type, onChange, value, label, isAuth })
 		
 		if(!isAuth) return;
 
-		backend.get(`/${type}s`)
+		backend.get(endpoint)
 				.then(({ data }) => {
 					if(!data || data.constructor !== Array) NotificationManager.error("Invalid server response!", "Error");
-					else setData(data.map(({ username, _id }) => ({ label: username, value: _id })));
+					else setData(data.map(entry => mapResult(entry)));
 				})
 				.catch(({ request, response }) => {
 					
@@ -229,7 +229,7 @@ function UserSelect({ type, onChange, value, label, isAuth })
 
 				});
 
-	}, [ type, value, isAuth ]);
+	}, [ endpoint, isAuth ]);
 
 	const styles = {
 		input: base => ({
@@ -244,14 +244,15 @@ function UserSelect({ type, onChange, value, label, isAuth })
 	return (
 
 		<Select
+			className={ className }
 			classes={ classes }
 			styles={ styles }
 			TextFieldProps={{
-				label: label ? label : type[0].toUpperCase() + type.substring(1),
+				label: label ? label : selectable[0].toUpperCase() + selectable.substring(1),
 				InputLabelProps: {
 					shrink: true
 				},
-				placeholder: `Select a ${type}...`
+				placeholder: `Select ${selectable}...`
 			}}
 			options={ data }
 			components={ components }
@@ -262,11 +263,14 @@ function UserSelect({ type, onChange, value, label, isAuth })
 	);
 }
 
-UserSelect.propTypes = {
-	type: PropTypes.oneOf([ 'admin', 'merchant', 'client' ]).isRequired,
+RemoteSelect.propTypes = {
+	selectable: PropTypes.string.isRequired,
+	mapResult: PropTypes.func.isRequired,
+	endpoint: PropTypes.string.isRequired,
 	onChange: PropTypes.func.isRequired,
 	value: PropTypes.string.isRequired,
+	className: PropTypes.string,
 	label: PropTypes.string
 };
 
-export default withAuth(UserSelect);
+export default withAuth(RemoteSelect);

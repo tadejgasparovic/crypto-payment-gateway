@@ -8,23 +8,12 @@ import Button from '@material-ui/core/Button';
 import { makeStyles } from '@material-ui/core/styles';
 
 import NavDrawer from './partial/NavDrawer';
+import Layout from './partial/Layout';
 
 import withAuth from './partial/withAuth';
 
 
 const useStyles = makeStyles(theme => ({
-	root: {
-		display: 'flex',
-		flexGrow: 1,
-		height: '100vh'
-	},
-	container: {
-		display: 'flex',
-		flexDirection: 'column',
-		alignItems: 'center',
-		justifyContent: 'center',
-		textAlign: 'center'
-	},
 	tips: {
 		display: 'flex',
 		justifyContent: 'space-evenly',
@@ -47,29 +36,26 @@ function Dashboard({ user, history })
 
 	return (
 
-		<div className={ classes.root }>
-			<NavDrawer />
-			<Container className={ classes.container } fixed>
-				<Typography variant="h1" color="textSecondary">
-					Welcome,<br/>
-					{ user.username }!
-				</Typography>
-				<div className={ classes.tips }>
-					<Button type="button" onClick={ () => history.push('/merchants') } className={ classes.tip }>
-						Manage<br />
-						Merchants
-					</Button>
-					<Button type="button" onClick={ () => history.push('/coins') } className={ classes.tip }>
-						Manage<br />
-						Crypto-currencies
-					</Button>
-					<Button type="button" onClick={ () => history.push('/admins') } className={ classes.tip }>
-						Manage<br />
-						Administrators
-					</Button>
-				</div>
-			</Container>
-		</div>
+		<Layout>
+			<Typography variant="h1" color="textSecondary">
+				Welcome,<br/>
+				{ user.username }!
+			</Typography>
+			<div className={ classes.tips }>
+				<Button type="button" onClick={ () => history.push('/merchants') } className={ classes.tip }>
+					Manage<br />
+					Merchants
+				</Button>
+				<Button type="button" onClick={ () => history.push('/coins') } className={ classes.tip }>
+					Manage<br />
+					Crypto-currencies
+				</Button>
+				<Button type="button" onClick={ () => history.push('/admins') } className={ classes.tip }>
+					Manage<br />
+					Administrators
+				</Button>
+			</div>
+		</Layout>
 
 	);
 }

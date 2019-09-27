@@ -66,7 +66,7 @@ function Login({ history })
 
 			})
 
-	}, []);
+	}, [ history ]);
 
 	const classes = useStyles();
 

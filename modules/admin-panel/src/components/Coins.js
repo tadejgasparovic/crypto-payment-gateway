@@ -57,7 +57,7 @@ function Coins({ user })
 					render: row => "*".repeat(8)
 				},
 				{
-					title: "Created By",
+					title: "Owned By",
 					field: "createdBy",
 					editComponent: ({ value = "", onChange }) => <UserSelect type="client" label="Provider" value={ value } onChange={ ({ value }) => onChange(value) } />,
 					render: row => <UsernameProvider type="client" value={ row.createdBy } />

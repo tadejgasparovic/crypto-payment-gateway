@@ -45,4 +45,9 @@ function UsernameProvider({ type, value })
 	return <span>{ username }</span>;
 }
 
+PropTypes.propTypes = {
+	type: PropTypes.string.isRequired,
+	value: PropTypes.string.isRequired
+};
+
 export default UsernameProvider;

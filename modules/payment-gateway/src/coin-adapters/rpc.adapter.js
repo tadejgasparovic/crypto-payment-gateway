@@ -8,6 +8,9 @@ class RpcAdapter
 
 		this.newAddress = this.newAddress.bind(this);
 		this.getRawTransaction = this.getRawTransaction.bind(this);
+		this.getBlock = this.getBlock.bind(this);
+		this.getBlockCount = this.getBlockCount.bind(this);
+
 		this._promisifyCall = this._promisifyCall.bind(this);
 	}
 
@@ -24,6 +27,16 @@ class RpcAdapter
 	getBlock(hash)
 	{
 		return this._promisifyCall('getblock', [ hash ]);
+	}
+
+	getBlockHash(height)
+	{
+		return this._promisifyCall('getblockhash', [ height ]);
+	}
+
+	getBlockCount()
+	{
+		return this._promisifyCall('getblockcount', []);
 	}
 
 	_promisifyCall(method, args = [])

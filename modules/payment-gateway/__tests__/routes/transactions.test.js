@@ -78,7 +78,11 @@ describe('Tests the "transaction notify" API endpoint', () => {
 	it('Should respond with 200 OK and mark payment as paid', () => {
 		return request(app)
 				.post('/transactions')
-				.send({ txid: "29a4c8805d78a26efb37b5890832e7e41d61a891a722571577f574c54fdb34b0", currency: "OCUL" })
+				.send({
+						txid: "29a4c8805d78a26efb37b5890832e7e41d61a891a722571577f574c54fdb34b0",
+						currency: "OCUL",
+						secret: config.txPushSecret
+					})
 				.set('Content-Type', 'application/json')
 				.expect(200)
 				.then(() => {
@@ -99,7 +103,11 @@ describe('Tests the "transaction notify" API endpoint', () => {
 		return testPayment.save().then(() => {
 			return request(app)
 					.post('/transactions')
-					.send({ txid: "29a4c8805d78a26efb37b5890832e7e41d61a891a722571577f574c54fdb34b0", currency: "OCUL" })
+					.send({
+							txid: "29a4c8805d78a26efb37b5890832e7e41d61a891a722571577f574c54fdb34b0",
+							currency: "OCUL",
+							secret: config.txPushSecret
+						})
 					.set('Content-Type', 'application/json')
 					.expect(200);
 		}).then(() => {
@@ -120,7 +128,11 @@ describe('Tests the "transaction notify" API endpoint', () => {
 		return testPayment.save().then(() => {
 			return request(app)
 					.post('/transactions')
-					.send({ txid: "29a4c8805d78a26efb37b5890832e7e41d61a891a722571577f574c54fdb34b0", currency: "OCUL" })
+					.send({
+							txid: "29a4c8805d78a26efb37b5890832e7e41d61a891a722571577f574c54fdb34b0",
+							currency: "OCUL",
+							secret: config.txPushSecret
+						})
 					.set('Content-Type', 'application/json')
 					.expect(200);
 		}).then(() => {
@@ -140,7 +152,11 @@ describe('Tests the "transaction notify" API endpoint', () => {
 
 		return request(app)
 				.post('/transactions')
-				.send({ txid: "29a4c8805d78a26efb37b5890832e7e41d61a891a722571577f574c54fdb34b0", currency: "OCUL" })
+				.send({
+						txid: "29a4c8805d78a26efb37b5890832e7e41d61a891a722571577f574c54fdb34b0",
+						currency: "OCUL",
+						secret: config.txPushSecret
+					})
 				.set('Content-Type', 'application/json')
 				.expect(200)
 				.then(() => {
@@ -154,6 +170,17 @@ describe('Tests the "transaction notify" API endpoint', () => {
 					expect(payment.confirmations).toBeGreaterThan(0);
 				})
 				.finally(() => config.setRequiredConfirmations(3));
+	});
+
+	it('Should respond with 403 Unauthorized', () => {
+		return request(app)
+				.post('/transactions')
+				.send({
+						txid: "29a4c8805d78a26efb37b5890832e7e41d61a891a722571577f574c54fdb34b0",
+						currency: "OCUL"
+					})
+				.set('Content-Type', 'application/json')
+				.expect(403);
 	});
 
 });

@@ -20,12 +20,13 @@ router.post('/', (req, res) => {
 	const { error } = Joi.validate(req.body, Joi.object().keys({
 		username: Joi.string().min(3).max(255).required(),
 		password: Joi.string().min(8).max(255).required(),
-		type: Joi.string().valid(Object.keys(accountTypes)).required()
+		type: Joi.string().valid(Object.keys(accountTypes)).required(),
+		extended: Joi.boolean()
 	}));
 
 	if(error) return res.status(400).json({ error: (error.details && error.details.length > 0) ? error.details[0].message : "Body validation failed" }).end();
 
-	const { username, password, type } = req.body;
+	const { username, password, type, extended = false } = req.body;
 
 	const Account = accountTypes[type];
 
@@ -41,13 +42,34 @@ router.post('/', (req, res) => {
 					return;
 				}
 
-				res.status(200)
-					.send({ token: token(id, type, req.connection.remoteAddress) });
+				return token(id, type, req.connection.remoteAddress, extended);
+			})
+			.then(token => {
+				if(token) res.status(200).send({ token });
+				else throw Error("No token");
 			})
 			.catch(e => {
 				debug(e);
-				res.status(500).send("Internal Error");
+				if(!res.finished) res.status(500).send("Internal Error");
 			});
+});
+
+router.delete('/', auth(...(_.keys(accountTypes))), async (req, res) => {
+	try
+	{
+		await token.invalidate(req.rawToken);
+	}
+	catch(e)
+	{
+		debug("Failed to invalidate token");
+		debug(req.rawToken);
+		debug(req.token);
+		debug(e);
+	}
+	finally
+	{
+		res.status(200).send("OK");
+	}
 });
 
 router.get('/check', auth(...(_.keys(accountTypes))), (req, res) => {
